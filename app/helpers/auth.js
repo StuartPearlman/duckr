@@ -1,19 +1,31 @@
+import { ref } from 'config/constants'
+import { formatUserInfo } from 'helpers/utils'
+import { authUser, fetchingUserSuccess } from 'redux/modules/users'
+
 export default function auth () {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve({
-        name: 'Stu',
-        avatar: 'http://someurl.com/image',
-        uid: 'stuman',
-      })
-    }, 2000)
-  })
+  return ref.authWithOAuthPopup('facebook')
 }
 
 export function checkIfAuthed (store) {
-  return store.getState().isAuthed
+  const authData = ref.getAuth()
+  if (authData === null) {
+    return false
+  } else if (store.getState().isAuthed === false) {
+    const { uid, facebook } = authData
+    const userInfo = formatUserInfo(facebook.displayName, facebook.profileImageURL, uid)
+    store.dispatch(authUser(uid))
+    store.dispatch(fetchingUserSuccess(uid, userInfo, Date.now()))
+  }
+
+  return true
 }
 
 export function logout () {
-  console.log('logged out')
+  ref.unauth()
+}
+
+export function saveUser (user) {
+  return ref.child(`users/${user.uid}`)
+    .set(user)
+    .then(() => user)
 }
